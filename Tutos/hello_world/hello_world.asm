@@ -15,6 +15,6 @@ _start:
     int 0x80
 
 
-; nasm -f elf32 -o hello_world.o hello_world.asm 
-; ld -m elf_i386 -o hello_world hello_world.o
-; ./hello_world
+; nasm -f elf32 -o hello.o hello.asm 
+; ld -m elf_i386 -o hello hello.o
+; ./hello
