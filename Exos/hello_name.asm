@@ -14,16 +14,26 @@ SECTION .rodata
 AskNameInput:        db "Entrez votre prénom: "
 len_AskNameInput:    equ $ - AskNameInput
 
+SECTION .bss
+user_input: resb 256
+
 SECTION .text
 global _start
 _start:
     ; write
-    mov     rax, 1 					; ID du syscall
-    mov     rdi, 1					; unsigned int fd
-    mov     rsi, AskNameInput		; const char *buf
-    mov     rdx, len_AskNameInput   ; size_t count
-    syscall
+    mov     rax, 1 				  ; ID du syscall
+    mov     rdi, 1				  ; unsigned int fd
+    mov     rsi, AskNameInput	  ; const char *buf
+    mov     rdx, len_AskNameInput ; size_t count
+    syscall	
 
+	; read
+    mov     rax, 0 				  ; ID du syscall
+    mov     rdi, 0				  ; unsigned int fd
+    mov     rsi, user_input		  ; char *buf
+    mov     rdx, 256        	  ; size_t count
+    syscall
+	
     ; exit(0)
     mov     rax, 60
     xor     rdi, rdi
