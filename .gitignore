@@ -38,3 +38,4 @@ core.*
 *.code-workspace
 .DS_Store
 Thumbs.db
+clear.sh
