@@ -1,14 +1,13 @@
-; Objectif:
-;   Écrire un programme qui :
-;   Affiche Entrez votre prénom: sur la sortie standard.
-;   Lit une ligne au clavier (stdin) dans un buffer.
-;   Retire le saut de ligne final (\n).
-;   Affiche Bonjour, <prénom>!\n.
-;   Se termine proprement.
-
-;  build: nasm -f elf64 -o hello_name.o hello_name.asm
-;  link:  ld -o hello_name hello_name.o
-;  les deux: nasm -f elf64 -o hello_name.o hello_name.asm && ld -o hello_name hello_name.o && ./hello_name
+; hello_name_v1 — version d’apprentissage (conservée pour l’historique)
+; Affiche le prompt, lit une ligne, trim naïf (-1) avec «dec», affiche « Bonjour, <nom> !».
+; Améliorations à faire : trim conditionnel du LF (\n) et validation basique de l’entrée.
+; 
+; build: 
+;   nasm -f elf64 -o hello_name_v1.o hello_name_v1.asm
+; link:  
+;   ld -o hello_name_v1 hello_name_v1.o
+; build+link+exec: 
+;   nasm -f elf64 -o hello_name_v1.o hello_name_v1.asm && ld -o hello_name_v1 hello_name_v1.o && ./hello_name_v1
 
 SECTION .rodata
 AskNameInput:        db "Entrez votre prénom: "
@@ -39,8 +38,8 @@ _start:
     mov     rdx, user_input_buf   ; size_t count
     syscall
 
-	mov r12, rax                  ; on met rax (le retour de read) dans rcx
-    dec r12                       ; enleve le dernier char (tres moche)
+	mov r12, rax                  ; on met rax (le retour de read) dans r12
+    dec r12                       ; enleve le dernier char pour trim le \n (tres moche)
 	
     ; write
     mov     rax, 1 				  ; ID du syscall
