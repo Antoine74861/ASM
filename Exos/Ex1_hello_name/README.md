@@ -1,4 +1,4 @@
-# Objectif
+# Exercice 1
 
 Écrire un programme qui :
 
