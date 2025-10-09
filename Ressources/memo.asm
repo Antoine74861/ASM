@@ -4,16 +4,14 @@
 ;   ./hello
 
 
-
 ; utils:
 ;   objdump: objdump -d -M intel ./hello
-;   gdb:     set disassembly-flavor intel
+;   strace ./hello
 
 
 
 ; syscalls x86-64
 ; https://syscalls.w3challs.com/?arch=x86_64
-
 
 
 ; registres:
