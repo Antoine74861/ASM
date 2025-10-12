@@ -1,28 +1,38 @@
-; hello_name_v2 — version d’apprentissage (conservée pour l’historique)
-; Affiche le prompt, lit une ligne, trim conditionnel du LF (\n), affiche « Bonjour, <nom> !».
-; Améliorations à faire : trim conditionnel du LF (\n) et validation basique de l’entrée.
-; 
+; hello_name_v2 — version "finale"
+;  
 ; build: 
 ;   nasm -f elf64 -o hello_name_v2.o hello_name_v2.asm
 ; link:  
 ;   ld -o hello_name_v2 hello_name_v2.o
 ; build+link+exec: 
-;   nasm -f elf64 -o hello_name_v2.o hello_name_v2.asm && ld -o hello_name_v2 hello_name_v2.o && ./hello_name_v2
+;   clear && nasm -f elf64 -o hello_name_v2.o hello_name_v2.asm && ld -o hello_name_v2 hello_name_v2.o && ./hello_name_v2
+
+DEFAULT REL			        ; use RIP-relative addressing modes by default, so [foo] = [rel foo]
 
 SECTION .rodata
-AskNameInput:        db "Entrez votre prénom: "
-len_AskNameInput:    equ $ - AskNameInput
-AnswerName:        db "Bonjour "
-len_AnswerName:    equ $ - AnswerName
-AnswerExclamationMark:        db "!", 10
-len_AnswerExclamationMark:    equ $ - AnswerExclamationMark
-user_input_buf       equ 256
+AskNameInput:               db "Entrez votre prénom: "
+len_AskNameInput:           equ $ - AskNameInput
+
+AnswerName:                 db "Bonjour "
+len_AnswerName:             equ $ - AnswerName
+
+AnswerExclamationMark:      db "!", 0x0A
+len_AnswerExclamationMark:  equ $ - AnswerExclamationMark
+
+ReadIsEmpty:                db 0x0A, "Entrée vide", 0x0A
+len_ReadIsEmpty:            equ $ - ReadIsEmpty
+
+ReadError:                  db 0x0A, "Erreur de lecture", 0x0A
+len_ReadError:              equ $ - ReadError
+
+user_input_buf              equ 256
 
 SECTION .bss
 user_input: resb 256
 
 SECTION .text
 global _start
+
 _start:
     ; write
     mov     rax, 1 				  ; ID du syscall
@@ -39,8 +49,17 @@ _start:
     syscall
 
 	mov r12, rax                  ; on met rax (le retour de read) dans r12
-    dec r12                       ; enleve le dernier char pour trim le \n (tres moche)
-	
+    cmp r12, 0                    ; r12 - 0
+    jz .read_empty                ; si flag ZF=1 (égal à zéro), alors jump
+    js .read_error                ; si r12 < 0, erreur
+
+    lea r13, [rel user_input]      ; lea = load effective adresse, ca permet de charger l'adresse d'user_input
+    cmp byte [r13 + r12 - 1], 0x0A ; Si le -1 byte de r12 est un \n on le trim
+    jz  .trim_lf 
+    jmp .greetings 
+    
+
+.greetings:
     ; write
     mov     rax, 1 				  ; ID du syscall
     mov     rdi, 1				  ; unsigned int fd
@@ -62,8 +81,39 @@ _start:
     mov     rdx, len_AnswerExclamationMark  ; size_t count
     syscall	
 
+    jmp .exit
+
+
+.read_empty:
+    ; write
+    mov     rax, 1 				  ; ID du syscall
+    mov     rdi, 1				  ; unsigned int fd
+    mov     rsi, ReadIsEmpty	  ; const char *buf
+    mov     rdx, len_ReadIsEmpty  ; size_t count
+    syscall	
+
+    jmp .exit
+
+.read_error:
+    ; write
+    mov     rax, 1 				  ; ID du syscall
+    mov     rdi, 1				  ; unsigned int fd
+    mov     rsi, ReadError	      ; const char *buf
+    mov     rdx, len_ReadError    ; size_t count
+    syscall	
+
+    mov     rax, 60
+    mov     rdi, 1
+    syscall
+
+.trim_lf:
+    dec r12                       ; enleve le dernier char pour trim le \n
+    cmp r12, 0
+    jz .read_empty                ; si r12 est egal a 0 apres le dec
+    jmp .greetings 
+    
+.exit:
     ; exit(0)
     mov     rax, 60
     xor     rdi, rdi
     syscall
-
