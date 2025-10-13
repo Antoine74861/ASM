@@ -19,7 +19,10 @@ len_AnswerName:             equ $ - AnswerName
 AnswerExclamationMark:      db "!", 0x0A
 len_AnswerExclamationMark:  equ $ - AnswerExclamationMark
 
-ReadIsEmpty:                db 0x0A, "Entrée vide", 0x0A
+LineFeed:                   db 0x0A
+len_LineFeed:               equ $ - LineFeed
+
+ReadIsEmpty:                db "Entrée vide", 0x0A
 len_ReadIsEmpty:            equ $ - ReadIsEmpty
 
 ReadError:                  db 0x0A, "Erreur de lecture", 0x0A
@@ -50,7 +53,7 @@ _start:
 
 	mov r12, rax                  ; on met rax (le retour de read) dans r12
     cmp r12, 0                    ; r12 - 0
-    jz .read_empty                ; si flag ZF=1 (égal à zéro), alors jump
+    jz .read_empty_add_linefeed   ; si flag ZF=1 (égal à zéro), alors jump
     js .read_error                ; si r12 < 0, erreur
 
     lea r13, [rel user_input]      ; lea = load effective adresse, ca permet de charger l'adresse d'user_input
@@ -117,3 +120,12 @@ _start:
     mov     rax, 60
     xor     rdi, rdi
     syscall
+
+.read_empty_add_linefeed:
+    mov     rax, 1 				            ; ID du syscall
+    mov     rdi, 1				            ; unsigned int fd
+    mov     rsi, LineFeed	                ; const char *buf
+    mov     rdx, len_LineFeed               ; size_t count
+    syscall	
+
+    jmp .read_empty

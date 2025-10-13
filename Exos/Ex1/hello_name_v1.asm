@@ -39,6 +39,11 @@ _start:
     syscall
 
 	mov r12, rax                  ; on met rax (le retour de read) dans r12
+    test r12, r12                 ; test si r12 est a 0
+    
+
+
+
     dec r12                       ; enleve le dernier char pour trim le \n (tres moche)
 	
     ; write
