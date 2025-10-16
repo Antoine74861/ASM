@@ -87,6 +87,10 @@ _start:
         xor r14, r14 ; index de la loop
         lea r13, [rel user_input]
         for_byte_in_user_input:
+            ;si index >= r12 leave loop
+            cmp r14, r12
+            jae next
+            
             lea r15, [r13 + r14] ; pointeur du char
             ; write(1, char, len)
             mov     rax, SYS_WRITE      
@@ -95,10 +99,6 @@ _start:
             mov     rdx, 1
             syscall
 
-            ;si index >= r12 leave loop
-            cmp r14, r12
-            jae next
-            ;else:
             add r14, 1
             jmp for_byte_in_user_input
             
