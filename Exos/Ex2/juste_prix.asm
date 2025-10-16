@@ -15,6 +15,9 @@ len_PrintError:         equ $ - InvalidNumber
 InvalidNumber:          db "Entree invalide (1..100), recommence.", 0x0A
 len_InvalidNumber:      equ $ - InvalidNumber
 
+Debug:                  db "DEBUG", 0x0A
+len_Debug:              equ $ - Debug
+
 itsMore:                db "Plus", 0x0A
 len_itsMore:            equ $ - itsMore
 
@@ -59,14 +62,10 @@ _start:
         je loop_random_int_1_100_end
         jmp loop_random_int_1_100
 
+    ascii_to_int:
+    int_to_ascii:
+    
     loop_random_int_1_100_end:
-        ; write(1, random_4_bytes, r12)
-        mov     rax, SYS_WRITE
-        mov     rdi, 1
-        lea     rsi, random_4_bytes
-        mov     rdx, r12
-        syscall
-
         ; write(1, AskGuessANumber, len)
         mov     rax, SYS_WRITE      
         mov     rdi, 1
@@ -74,10 +73,43 @@ _start:
         mov     rdx, len_AskGuessANumber
         syscall
 
-        ; suite du jeu
+        ; read
+        mov     rax, 0 				   
+        mov     rdi, 0	 
+        mov     rsi, user_input
+        mov     rdx, user_input_buf_size
+        syscall
 
-        jmp exit
+        mov r12, rax
+        cmp r12, 0 
+        jle erreur_gravissime_tout_quitter ; jle, je peaufinerais a la fin
 
+        xor r14, r14 ; index de la loop
+        lea r13, [rel user_input]
+        for_byte_in_user_input:
+            lea r15, [r13 + r14] ; pointeur du char
+            ; write(1, char, len)
+            mov     rax, SYS_WRITE      
+            mov     rdi, 1
+            mov     rsi, r15
+            mov     rdx, 1
+            syscall
+
+            ;si index >= r12 leave loop
+            cmp r14, r12
+            jae next
+            ;else:
+            add r14, 1
+            jmp for_byte_in_user_input
+            
+        next:
+        ; write(1, Debug, len)
+        mov     rax, SYS_WRITE      
+        mov     rdi, 1
+        mov     rsi, Debug
+        mov     rdx, len_Debug
+        syscall
+        
     erreur_gravissime_tout_quitter:
         ; write(1, PrintError, len)
         mov     rax, SYS_WRITE
