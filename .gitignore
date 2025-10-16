@@ -25,6 +25,7 @@ a.out
 core
 core.*
 /build/
+**/build/
 /bin/
 /dist/
 /out/
