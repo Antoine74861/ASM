@@ -6,13 +6,13 @@
 DEFAULT REL	          
 
 SECTION .rodata
-AskGuessANumber:        db "Devinez le nombre (1..100): ", 0x0A
+AskGuessANumber:        db "Devinez le nombre (1..100): "
 len_AskGuessANumber:    equ $ - AskGuessANumber
 
 PrintError:             db "Catastrophe", 0x0A
 len_PrintError:         equ $ - InvalidNumber
 
-InvalidNumber:          db "Entree invalide (1..100), recommence.", 0x0A
+InvalidNumber:          db "Entree invalide (1..100), recommence: "
 len_InvalidNumber:      equ $ - InvalidNumber
 
 Debug:                  db "DEBUG", 0x0A
@@ -66,12 +66,15 @@ _start:
     int_to_ascii:
     
     loop_random_int_1_100_end:
-        ; write(1, AskGuessANumber, len)
-        mov     rax, SYS_WRITE      
-        mov     rdi, 1
-        mov     rsi, AskGuessANumber
-        mov     rdx, len_AskGuessANumber
-        syscall
+    ; write(1, AskGuessANumber, len)
+    mov     rax, SYS_WRITE      
+    mov     rdi, 1
+    mov     rsi, AskGuessANumber
+    mov     rdx, len_AskGuessANumber
+    syscall
+
+    game_loop:
+        lea r13, [rel user_input]
 
         ; read
         mov     rax, 0 				   
@@ -80,58 +83,70 @@ _start:
         mov     rdx, user_input_buf_size
         syscall
 
+        ; VALIDATION DE L'INPUT
         mov r12, rax
         cmp r12, 0 
         jle erreur_gravissime_tout_quitter ; jle, je peaufinerais a la fin
+    
+        ; trim du LF si y en a un
+        cmp byte [r13 + r12 - 1], 0x0A
+        jnz  skip_trim 
+        dec r12
+        cmp r12, 0
+        je invalid_number
 
+        skip_trim:
         xor r14, r14 ; index de la loop
-        lea r13, [rel user_input]
         for_byte_in_user_input:
             ;si index >= r12 break loop
             cmp r14, r12
             jae next
             
             lea r15, [r13 + r14] ; pointeur du char
-            ; si char < '0' ou > '9' -> skip
+            ; si char < '0' ou > '9' -> entrée invalide
             cmp byte [r15], 0x30    
-            jb skip
+            jb invalid_number
             cmp byte [r15], 0x39
-            ja skip
-            
-            ; write(1, Debug, len)
-            mov     rax, SYS_WRITE      
-            mov     rdi, 1
-            mov     rsi, r15
-            mov     rdx, 1
-            syscall
+            ja invalid_number
 
-            skip:    
-            add r14, 1
+            inc r14
             jmp for_byte_in_user_input
-            
-        next:
-        ; write(1, Debug, len)
-        mov     rax, SYS_WRITE      
-        mov     rdi, 1
-        mov     rsi, Debug
-        mov     rdx, len_Debug
-        syscall
-        
-    erreur_gravissime_tout_quitter:
-        ; write(1, PrintError, len)
-        mov     rax, SYS_WRITE
-        mov     rdi, 1
-        mov     rsi, PrintError
-        mov     rdx, len_PrintError
-        syscall
 
-        ; exit(1)
-        mov rax, SYS_EXIT
-        mov rdi, 1
-        syscall
+    next:
+    ; write(1, Debug, len)
+    mov     rax, SYS_WRITE      
+    mov     rdi, 1
+    mov     rsi, Debug
+    mov     rdx, len_Debug
+    syscall
+
+    jmp exit
+
+    invalid_number:
+    ; write(1, InvalidNumber, len)
+    mov     rax, SYS_WRITE
+    mov     rdi, 1
+    mov     rsi, InvalidNumber
+    mov     rdx, len_InvalidNumber
+    syscall
+
+    jmp game_loop
+
+    erreur_gravissime_tout_quitter:
+    ; write(1, PrintError, len)
+    mov     rax, SYS_WRITE
+    mov     rdi, 1
+    mov     rsi, PrintError
+    mov     rdx, len_PrintError
+    syscall
+
+    ; exit(1)
+    mov rax, SYS_EXIT
+    mov rdi, 1
+    syscall
 
     exit:
-        ; exit(0)
-        mov rax, SYS_EXIT
-        xor rdi, rdi
-        syscall
+    ; exit(0)
+    mov rax, SYS_EXIT
+    xor rdi, rdi
+    syscall
