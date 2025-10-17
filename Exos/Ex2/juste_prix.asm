@@ -10,7 +10,7 @@ AskGuessANumber:        db "Devinez le nombre (1..100): "
 len_AskGuessANumber:    equ $ - AskGuessANumber
 
 PrintError:             db "Catastrophe", 0x0A
-len_PrintError:         equ $ - InvalidNumber
+len_PrintError:         equ $ - PrintError
 
 InvalidNumber:          db "Entree invalide (1..100), recommence: "
 len_InvalidNumber:      equ $ - InvalidNumber
@@ -41,14 +41,18 @@ _start:
     lea r13, [random_4_bytes]       ; r13 = base (adresse) du buffer aléatoire
     mov r14, random_int_size        ; r14 = restant à lire (initialement 4)
 
-    jmp loop_random_int_1_100       ; boucle de remplissage du buffer aléatoire
-
-    loop_random_int_1_100:
+    ; Boucle de remplissage du buffer aléatoire
+    ; En soit elle sert a rien:
+    ;   >If the urandom source has been initialized, 
+    ;   reads of up to 256 bytes will always return as many bytes as requested 
+    ;   and will not be interrupted by signals.
+    ; Mais je l'ai fait quand même.
+    loop_get_random_4_bytes:
         ; getrandom(&buffer[cumul], restant, flags=0)
         mov rax, SYS_GETRANDOM      ; RAX = n° syscall
         lea rdi, [r13 + r12]        ; RDI = pointeur de destination (base + cumul)
         mov rsi, r14                ; RSI = nombre d’octets à lire (restant)
-        mov rdx, 0x0000             ; RDX = flags (0 = urandom-like, bloquant si entropie pas prête)
+        mov rdx, 0x0000             ; RDX = flags
         syscall
 
         cmp rax, 0
@@ -57,15 +61,9 @@ _start:
         add r12, rax                ; cumul += delta (octets effectivement reçus)
         sub r14, rax                ; restant -= delta
                                     ; invariant: random_int_size == r12 + r14
-
-        cmp r12, random_int_size
-        je loop_random_int_1_100_end
-        jmp loop_random_int_1_100
-
-    ascii_to_int:
-    int_to_ascii:
+    cmp r12, random_int_size
+    jne loop_get_random_4_bytes     ; tant que r12 n'est pas == random_int_size, on boucle
     
-    loop_random_int_1_100_end:
     ; write(1, AskGuessANumber, len)
     mov     rax, SYS_WRITE      
     mov     rdi, 1
@@ -79,7 +77,7 @@ _start:
         ; read
         mov     rax, 0 				   
         mov     rdi, 0	 
-        mov     rsi, user_input
+        mov     rsi, r13
         mov     rdx, user_input_buf_size
         syscall
 
@@ -90,29 +88,49 @@ _start:
     
         ; trim du LF si y en a un
         cmp byte [r13 + r12 - 1], 0x0A
-        jnz  skip_trim 
+        jnz  skip_trim ; si y en a pas on skip
         dec r12
         cmp r12, 0
-        je invalid_number
+        je invalid_number ; si len(input) == 0 apres trim du lf -> entrée invalide
 
         skip_trim:
         xor r14, r14 ; index de la loop
-        for_byte_in_user_input:
-            ;si index >= r12 break loop
-            cmp r14, r12
-            jae next
-            
+        for_byte_in_user_input:            
             lea r15, [r13 + r14] ; pointeur du char
             ; si char < '0' ou > '9' -> entrée invalide
-            cmp byte [r15], 0x30    
+            cmp byte [r15], 0x30  
             jb invalid_number
             cmp byte [r15], 0x39
             ja invalid_number
-
             inc r14
-            jmp for_byte_in_user_input
+            
+        ;si index != r12 on loop
+        cmp r14, r12
+        jne for_byte_in_user_input
+    
+    ; CONVERSION ASCII => ENTIER
+    ; Pour chaque caractère :
+    ;   digit = byte - '0'      ; ex : '1' (0x31) → 1 (0x01)
+    ;   val   = val*10 + digit  ; accumulation en base 10
+    xor r14, r14 ; index de la loop
+    xor r15d, r15d ; stock 32 bit pour le calculs 
+    xor r11, r11 ; resultat total
+    ascii_to_int:  ; on converti l'ASCII user_input en int           
+        lea rax, [r13 + r14] ; pointeur du char
+        movzx r15d, byte [rax - 0x30] ; digit 
 
-    next:
+        xor edx,edx     ; 
+        mov edx, 2     ; 
+        mov eax, 5      ; 
+        mul edx,       ;
+
+        add r11, r15d
+        inc r14
+    
+    ;si index != r12 on loop
+    cmp r14, r12
+    jne ascii_to_int
+    
     ; write(1, Debug, len)
     mov     rax, SYS_WRITE      
     mov     rdi, 1
