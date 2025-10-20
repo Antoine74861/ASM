@@ -113,24 +113,26 @@ _start:
     ;   digit = byte - '0'      ; ex : '1' (0x31) → 1 (0x01)
     ;   val   = val*10 + digit  ; accumulation en base 10
     xor r14, r14 ; index de la loop
-    xor r15d, r15d ; stock 32 bit pour le calculs 
-    xor r11, r11 ; resultat total
+    xor r11d, r11d ; resultat total
     ascii_to_int:  ; on converti l'ASCII user_input en int           
         lea rax, [r13 + r14] ; pointeur du char
-        movzx r15d, byte [rax - 0x30] ; digit 
+        mov al, [rax]  
+        sub al, 0x30    ; al = digit
 
-        xor edx,edx     ; 
-        mov edx, 2     ; 
-        mov eax, 5      ; 
-        mul edx,       ;
+        mov edx, r11d   ; val
+        mov eax, 10     ; 10
+        mul edx         ; mul = val * 10
 
-        add r11, r15d
+        movzx r15d, al
+        add eax, r15d     ; (mul + digit)
+        mov r11d, eax     ; val = val + (mul + digit)
+
         inc r14
     
     ;si index != r12 on loop
     cmp r14, r12
     jne ascii_to_int
-    
+
     ; write(1, Debug, len)
     mov     rax, SYS_WRITE      
     mov     rdi, 1
