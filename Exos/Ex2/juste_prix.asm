@@ -29,10 +29,12 @@ len_YouWon:             equ $ - YouWon
 
 user_input_buf_size     equ 256
 random_int_size         equ 4
+user_input_int_size     equ 4
 
 SECTION .bss
 user_input:      resb user_input_buf_size
 random_4_bytes:  resb random_int_size
+user_input_int:  resb user_input_int_size
 
 SECTION .text
 global _start
@@ -71,9 +73,8 @@ _start:
     mov     rdx, len_AskGuessANumber
     syscall
 
+    lea r13, [user_input]
     game_loop:
-        lea r13, [rel user_input]
-
         ; read
         mov     rax, 0 				   
         mov     rdi, 0	 
@@ -108,39 +109,47 @@ _start:
         cmp r14, r12
         jne for_byte_in_user_input
     
-    ; CONVERSION ASCII => ENTIER
-    ; Pour chaque caractère :
-    ;   digit = byte - '0'      ; ex : '1' (0x31) → 1 (0x01)
-    ;   val   = val*10 + digit  ; accumulation en base 10
-    xor r14, r14 ; index de la loop
-    xor r11d, r11d ; resultat total
-    ascii_to_int:  ; on converti l'ASCII user_input en int           
-        lea rax, [r13 + r14] ; pointeur du char
-        mov al, [rax]  
-        sub al, 0x30    ; al = digit
+        ; CONVERSION ASCII => ENTIER
+        ; Pour chaque caractère :
+        ;   digit = byte - '0'      ; ex : '1' (0x31) → 1 (0x01)
+        ;   val   = val*10 + digit  ; accumulation en base 10
+        xor r14, r14 ; index de la loop
+        xor r11d, r11d ; resultat total
+        ascii_to_int:  ; on converti l'ASCII user_input en int           
+            lea rax, [r13 + r14] ; pointeur du char
+            mov al, [rax]  
+            sub al, 0x30    ; al = digit
+            movzx r15d, al  ; on le stocke AVANT mul sinon ca l'écrase et on passe 1h à debugguer!!!!!!
 
-        mov edx, r11d   ; val
-        mov eax, 10     ; 10
-        mul edx         ; mul = val * 10
+            mov edx, r11d   ; val
+            mov eax, 10     ; 10
+            mul edx         ; mul = val * 10
 
-        movzx r15d, al
-        add eax, r15d     ; (mul + digit)
-        mov r11d, eax     ; val = val + (mul + digit)
+            add eax, r15d     ; (mul + digit)
+            mov r11d, eax     ; val = val + (mul + digit)
 
-        inc r14
-    
-    ;si index != r12 on loop
-    cmp r14, r12
-    jne ascii_to_int
+            inc r14
+        
+        ;si index != r12 on loop
+        cmp r14, r12
+        jne ascii_to_int
+        
+        mov dword [user_input_int], r11d
 
-    ; write(1, Debug, len)
-    mov     rax, SYS_WRITE      
-    mov     rdi, 1
-    mov     rsi, Debug
-    mov     rdx, len_Debug
-    syscall
+        ; write(1, user_input_int, len)
+        mov     rax, SYS_WRITE      
+        mov     rdi, 1
+        lea     rsi, [user_input_int]
+        mov     rdx, user_input_int_size
+        syscall
 
-    jmp exit
+        cmp dword [user_input_int], 0x00000032
+        je erreur_gravissime_tout_quitter
+
+        ; exit(0)
+        mov rax, SYS_EXIT
+        xor rdi, rdi
+        syscall
 
     invalid_number:
     ; write(1, InvalidNumber, len)
@@ -163,10 +172,4 @@ _start:
     ; exit(1)
     mov rax, SYS_EXIT
     mov rdi, 1
-    syscall
-
-    exit:
-    ; exit(0)
-    mov rax, SYS_EXIT
-    xor rdi, rdi
     syscall
