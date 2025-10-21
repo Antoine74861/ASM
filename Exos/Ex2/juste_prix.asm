@@ -134,6 +134,12 @@ _start:
         cmp r14, r12
         jne ascii_to_int
         
+        ; validation int entre 1 et 100
+        cmp dword r11d, 0x01  
+        jb invalid_number
+        cmp dword r11d, 0x64
+        ja invalid_number
+
         ; CONVERSION ENTIER => ASCII
         ; On divise par 10 jusqua val = 0.
         ;   ex: 132 / 10 => q=13, r=2 => buffer '2'
