@@ -42,7 +42,7 @@ _start:
     xor r12, r12                    ; r12 = cumul d’octets reçus (0 au départ)
     lea r13, [random_4_bytes]       ; r13 = base (adresse) du buffer aléatoire
     mov r14, random_int_size        ; r14 = restant à lire (initialement 4)
-
+    
     ; Boucle de remplissage du buffer aléatoire
     ; En soit elle sert a rien:
     ;   >If the urandom source has been initialized, 
@@ -66,6 +66,18 @@ _start:
     cmp r12, random_int_size
     jne loop_get_random_4_bytes     ; tant que r12 n'est pas == random_int_size, on boucle
     
+    mov edx, 0
+    mov eax, [random_4_bytes]
+    mov ecx, 0x64
+    div ecx
+
+    mov [random_4_bytes], edx
+
+    mov r14, random_int_size
+    dec r14
+    mov r11d, [random_4_bytes] 
+    jmp int_to_ascii
+
     ; write(1, AskGuessANumber, len)
     mov     rax, SYS_WRITE      
     mov     rdi, 1
@@ -174,7 +186,6 @@ _start:
         mov     rsi, ascii_buffer
         mov     rdx, ascii_buffer_size
         syscall
-
 
         ; exit(0)
         mov rax, SYS_EXIT
