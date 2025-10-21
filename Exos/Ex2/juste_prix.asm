@@ -65,13 +65,22 @@ _start:
                                     ; invariant: random_int_size == r12 + r14
     cmp r12, random_int_size
     jne loop_get_random_4_bytes     ; tant que r12 n'est pas == random_int_size, on boucle
-    
+
+    cmp  dword [random_4_bytes], 0xFFFFFFA0   ; T = plus grand multiple de 100 ≤ 2^32 (4294967200)
+    jb skip_retry_random
+    xor r12, r12  
+    lea r13, [random_4_bytes] 
+    mov r14, random_int_size
+    jmp  loop_get_random_4_bytes ; rejeter si x ≥ T (évite le biais du %100)
+    skip_retry_random:
+
     mov edx, 0
     mov eax, [random_4_bytes]
     mov ecx, 0x64
     div ecx
-
-    mov [random_4_bytes], edx
+    
+    inc edx
+    mov [random_4_bytes], edx  
 
     mov r14, random_int_size
     dec r14
