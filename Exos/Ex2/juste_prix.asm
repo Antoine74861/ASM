@@ -29,12 +29,12 @@ len_YouWon:             equ $ - YouWon
 
 user_input_buf_size     equ 256
 random_int_size         equ 4
-user_input_int_size     equ 4
+ascii_buffer_size       equ 4
 
 SECTION .bss
 user_input:      resb user_input_buf_size
 random_4_bytes:  resb random_int_size
-user_input_int:  resb user_input_int_size
+ascii_buffer:    resb ascii_buffer_size
 
 SECTION .text
 global _start
@@ -134,17 +134,41 @@ _start:
         cmp r14, r12
         jne ascii_to_int
         
-        mov dword [user_input_int], r11d
+        ; CONVERSION ENTIER => ASCII
+        ; On divise par 10 jusqua val = 0.
+        ;   ex: 132 / 10 => q=13, r=2 => buffer '2'
+        ;       13 / 10  => q=1,  r=3 => buffer '3'
+        ;       1 / 10   => q=0,  r=1 => buffer '1'
+        ; Je pars du principe que le int a convertir est dans r11d (donc 32bits)
+        ; Résultat dans ascii_buffer.
+        mov r14, ascii_buffer_size ; index du buffer
+        dec r14
+        int_to_ascii:
+            mov edx, 0
+            mov eax, r11d
+            mov ecx, 10
+            div ecx
 
-        ; write(1, user_input_int, len)
-        mov     rax, SYS_WRITE      
+            mov r11d, eax  ; quotient
+            mov r12b, dl   ; reste
+
+            add r12b, 0x30
+            lea r15, [ascii_buffer + r14] 
+            mov [r15], r12b
+
+            dec r14
+        
+        ;Tant que r11d > 0 on loop
+        cmp r11d, 0
+        ja int_to_ascii
+
+        ; write(1, InvalidNumber, len)
+        mov     rax, SYS_WRITE
         mov     rdi, 1
-        lea     rsi, [user_input_int]
-        mov     rdx, user_input_int_size
+        mov     rsi, ascii_buffer
+        mov     rdx, ascii_buffer_size
         syscall
 
-        cmp dword [user_input_int], 0x00000032
-        je erreur_gravissime_tout_quitter
 
         ; exit(0)
         mov rax, SYS_EXIT
