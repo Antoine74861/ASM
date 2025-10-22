@@ -18,7 +18,11 @@ Less:                   db "Moins", 0x0A
 len_Less:               equ $ - Less
 Win:                    db "Bravo!! Nombre d'essais: "
 len_Win:                equ $ - Win
+TooMuchTries:           db "Trop nul dsl", 0x0A
+len_TooMuchTries:       equ $ - TooMuchTries                
 lf:                     db 10
+
+max_tries               equ 100
 user_input_buf_size     equ 256
 uint32_size             equ 4
 nb_essais_size          equ 1
@@ -73,7 +77,7 @@ _start:
     div ecx
     
     inc edx
-    mov [random_uint32], edx  
+    mov dword [random_uint32], edx  
 
     lea r13, [user_input]
     game_loop:
@@ -150,7 +154,9 @@ _start:
         ja invalid_number
 
         inc byte [nb_essais]
-        
+        cmp byte [nb_essais], max_tries  ; Max 100 essais !!
+        je too_much_tries
+
         ; Plus ou moins
         cmp dword [random_uint32], r11d
         ja plus
@@ -187,6 +193,7 @@ _start:
         movzx r11d, byte [nb_essais]  
         mov r14, uint32_size ; index du buffer
         dec r14
+        xor r13, r13
         int_to_ascii:
             mov edx, 0
             mov eax, r11d
@@ -201,6 +208,7 @@ _start:
             mov [r15], r12b
 
             dec r14
+            inc r13
         
         ;Tant que r11d > 0 on loop
         cmp r11d, 0
@@ -216,8 +224,9 @@ _start:
         ; write(1, Win, len)
         mov     rax, SYS_WRITE
         mov     rdi, 1
-        lea     rsi, [ascii_buffer]
-        mov     rdx, uint32_size
+        lea     rsi, [ascii_buffer + uint32_size]  ; vu que je rempli mon ascii_buffer a l'envers, je dois ignorer les bits "morts" du debut
+        sub     rsi, r13
+        mov     rdx, r13
         syscall
 
         ; write(1, lf, len)
@@ -241,6 +250,19 @@ _start:
     syscall
 
     jmp game_loop
+
+    too_much_tries:
+    ; write(1, lf, len)
+    mov     rax, SYS_WRITE
+    mov     rdi, 1
+    lea     rsi, [TooMuchTries]
+    mov     rdx, len_TooMuchTries
+    syscall
+
+    ; exit(0)
+    mov rax, SYS_EXIT
+    xor rdi, rdi
+    syscall
 
     erreur_gravissime_tout_quitter:
     ; write(1, PrintError, len)
