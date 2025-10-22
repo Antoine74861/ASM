@@ -12,21 +12,22 @@ PrintError:             db "Catastrophe", 0x0A
 len_PrintError:         equ $ - PrintError
 InvalidNumber:          db "Entree invalide (1..100)", 0x0A
 len_InvalidNumber:      equ $ - InvalidNumber
-NombreEssaisFinal:      db "Nombre d'essais: "
-len_NombreEssaisFinal:  equ $ - NombreEssaisFinal
 More:                   db "Plus", 0x0A
 len_More:               equ $ - More
 Less:                   db "Moins", 0x0A
 len_Less:               equ $ - Less
-Win:                    db "Bravo!!", 0x0A
+Win:                    db "Bravo!! Nombre d'essais: "
 len_Win:                equ $ - Win
+lf:                     db 10
 user_input_buf_size     equ 256
 uint32_size             equ 4
+nb_essais_size          equ 1
 
 SECTION .bss
 user_input:    resb user_input_buf_size
 random_uint32: resb uint32_size
 ascii_buffer:  resb uint32_size
+nb_essais:     resb nb_essais_size
 
 SECTION .text
 global _start
@@ -58,7 +59,7 @@ _start:
     cmp r12, uint32_size
     jne loop_get_random_uint32     ; tant que r12 n'est pas == uint32_size, on boucle
 
-    cmp  dword [random_uint32], 0xFFFFFFA0   ; T = plus grand multiple de 100 ≤ 2^32 (4294967200)
+    cmp dword [random_uint32], 0xFFFFFFA0   ; T = plus grand multiple de 100 ≤ 2^32 (4294967200)
     jb skip_retry_random
     xor r12, r12  
     lea r13, [random_uint32] 
@@ -79,12 +80,12 @@ _start:
         ; write(1, AskGuessANumber, len)
         mov     rax, SYS_WRITE      
         mov     rdi, 1
-        mov     rsi, AskGuessANumber
+        lea     rsi, [AskGuessANumber]
         mov     rdx, len_AskGuessANumber
         syscall
 
         ; read
-        mov     rax, 0 				   
+        mov     rax, SYS_READ 				   
         mov     rdi, 0	 
         mov     rsi, r13
         mov     rdx, user_input_buf_size
@@ -143,13 +144,15 @@ _start:
         jne ascii_to_int
         
         ; validation int entre 1 et 100
-        cmp dword r11d, 0x01  
+        cmp r11d, 0x01  
         jb invalid_number
-        cmp dword r11d, 0x64
+        cmp r11d, 0x64
         ja invalid_number
 
+        inc byte [nb_essais]
+        
         ; Plus ou moins
-        cmp [random_uint32], r11d
+        cmp dword [random_uint32], r11d
         ja plus
         jl moins
         je win
@@ -157,17 +160,17 @@ _start:
             ; write(1, More, len)
             mov     rax, SYS_WRITE
             mov     rdi, 1
-            mov     rsi, More
+            lea     rsi, [More]
             mov     rdx, len_More
             syscall
-
+            
             jmp game_loop
 
         moins:
             ; write(1, Less, len)
             mov     rax, SYS_WRITE
             mov     rdi, 1
-            mov     rsi, Less
+            lea     rsi, [Less]
             mov     rdx, len_Less
             syscall
 
@@ -181,6 +184,7 @@ _start:
         ;       1 / 10   => q=0,  r=1 => buffer '1'
         ; Je pars du principe que le int a convertir est dans r11d (donc 32bits)
         ; Résultat dans ascii_buffer.
+        movzx r11d, byte [nb_essais]  
         mov r14, uint32_size ; index du buffer
         dec r14
         int_to_ascii:
@@ -205,10 +209,24 @@ _start:
         ; write(1, Win, len)
         mov     rax, SYS_WRITE
         mov     rdi, 1
-        mov     rsi, Win
+        lea     rsi, [Win]
         mov     rdx, len_Win
         syscall
-    
+
+        ; write(1, Win, len)
+        mov     rax, SYS_WRITE
+        mov     rdi, 1
+        lea     rsi, [ascii_buffer]
+        mov     rdx, uint32_size
+        syscall
+
+        ; write(1, lf, len)
+        mov     rax, SYS_WRITE
+        mov     rdi, 1
+        lea     rsi, [lf]
+        mov     rdx, 1
+        syscall
+
         ; exit(0)
         mov rax, SYS_EXIT
         xor rdi, rdi
@@ -218,7 +236,7 @@ _start:
     ; write(1, InvalidNumber, len)
     mov     rax, SYS_WRITE
     mov     rdi, 1
-    mov     rsi, InvalidNumber
+    lea     rsi, [InvalidNumber]
     mov     rdx, len_InvalidNumber
     syscall
 
@@ -228,7 +246,7 @@ _start:
     ; write(1, PrintError, len)
     mov     rax, SYS_WRITE
     mov     rdi, 1
-    mov     rsi, PrintError
+    lea     rsi, [PrintError]
     mov     rdx, len_PrintError
     syscall
 
