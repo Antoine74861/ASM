@@ -8,40 +8,32 @@ DEFAULT REL
 SECTION .rodata
 AskGuessANumber:        db "Devinez le nombre (1..100): "
 len_AskGuessANumber:    equ $ - AskGuessANumber
-
 PrintError:             db "Catastrophe", 0x0A
 len_PrintError:         equ $ - PrintError
-
-InvalidNumber:          db "Entree invalide (1..100), recommence: "
+InvalidNumber:          db "Entree invalide (1..100)", 0x0A
 len_InvalidNumber:      equ $ - InvalidNumber
-
-Debug:                  db "DEBUG", 0x0A
-len_Debug:              equ $ - Debug
-
-itsMore:                db "Plus", 0x0A
-len_itsMore:            equ $ - itsMore
-
-itsLess:                db "Moins", 0x0A
-len_itsLess:            equ $ - itsLess
-
-YouWon:                 db "Bravo!", 0x0A
-len_YouWon:             equ $ - YouWon
-
+NombreEssaisFinal:      db "Nombre d'essais: "
+len_NombreEssaisFinal:  equ $ - NombreEssaisFinal
+More:                   db "Plus", 0x0A
+len_More:               equ $ - More
+Less:                   db "Moins", 0x0A
+len_Less:               equ $ - Less
+Win:                    db "Bravo!!", 0x0A
+len_Win:                equ $ - Win
 user_input_buf_size     equ 256
-random_int_size         equ 4
-ascii_buffer_size       equ 4
+uint32_size             equ 4
 
 SECTION .bss
-user_input:      resb user_input_buf_size
-random_4_bytes:  resb random_int_size
-ascii_buffer:    resb ascii_buffer_size
+user_input:    resb user_input_buf_size
+random_uint32: resb uint32_size
+ascii_buffer:  resb uint32_size
 
 SECTION .text
 global _start
 _start:
     xor r12, r12                    ; r12 = cumul d’octets reçus (0 au départ)
-    lea r13, [random_4_bytes]       ; r13 = base (adresse) du buffer aléatoire
-    mov r14, random_int_size        ; r14 = restant à lire (initialement 4)
+    lea r13, [random_uint32]        ; r13 = base (adresse) du buffer aléatoire
+    mov r14, uint32_size            ; r14 = restant à lire (initialement 4 bytes)
     
     ; Boucle de remplissage du buffer aléatoire
     ; En soit elle sert a rien:
@@ -49,7 +41,7 @@ _start:
     ;   reads of up to 256 bytes will always return as many bytes as requested 
     ;   and will not be interrupted by signals.
     ; Mais je l'ai fait quand même.
-    loop_get_random_4_bytes:
+    loop_get_random_uint32:
         ; getrandom(&buffer[cumul], restant, flags=0)
         mov rax, SYS_GETRANDOM      ; RAX = n° syscall
         lea rdi, [r13 + r12]        ; RDI = pointeur de destination (base + cumul)
@@ -62,40 +54,35 @@ _start:
 
         add r12, rax                ; cumul += delta (octets effectivement reçus)
         sub r14, rax                ; restant -= delta
-                                    ; invariant: random_int_size == r12 + r14
-    cmp r12, random_int_size
-    jne loop_get_random_4_bytes     ; tant que r12 n'est pas == random_int_size, on boucle
+                                    ; invariant: uint32_size == r12 + r14
+    cmp r12, uint32_size
+    jne loop_get_random_uint32     ; tant que r12 n'est pas == uint32_size, on boucle
 
-    cmp  dword [random_4_bytes], 0xFFFFFFA0   ; T = plus grand multiple de 100 ≤ 2^32 (4294967200)
+    cmp  dword [random_uint32], 0xFFFFFFA0   ; T = plus grand multiple de 100 ≤ 2^32 (4294967200)
     jb skip_retry_random
     xor r12, r12  
-    lea r13, [random_4_bytes] 
-    mov r14, random_int_size
-    jmp  loop_get_random_4_bytes ; rejeter si x ≥ T (évite le biais du %100)
+    lea r13, [random_uint32] 
+    mov r14, uint32_size
+    jmp  loop_get_random_uint32 ; rejeter si x ≥ T (évite le biais du %100)
     skip_retry_random:
 
     mov edx, 0
-    mov eax, [random_4_bytes]
+    mov eax, [random_uint32]
     mov ecx, 0x64
     div ecx
     
     inc edx
-    mov [random_4_bytes], edx  
-
-    mov r14, random_int_size
-    dec r14
-    mov r11d, [random_4_bytes] 
-    jmp int_to_ascii
-
-    ; write(1, AskGuessANumber, len)
-    mov     rax, SYS_WRITE      
-    mov     rdi, 1
-    mov     rsi, AskGuessANumber
-    mov     rdx, len_AskGuessANumber
-    syscall
+    mov [random_uint32], edx  
 
     lea r13, [user_input]
     game_loop:
+        ; write(1, AskGuessANumber, len)
+        mov     rax, SYS_WRITE      
+        mov     rdi, 1
+        mov     rsi, AskGuessANumber
+        mov     rdx, len_AskGuessANumber
+        syscall
+
         ; read
         mov     rax, 0 				   
         mov     rdi, 0	 
@@ -129,7 +116,7 @@ _start:
         ;si index != r12 on loop
         cmp r14, r12
         jne for_byte_in_user_input
-    
+
         ; CONVERSION ASCII => ENTIER
         ; Pour chaque caractère :
         ;   digit = byte - '0'      ; ex : '1' (0x31) → 1 (0x01)
@@ -161,6 +148,32 @@ _start:
         cmp dword r11d, 0x64
         ja invalid_number
 
+        ; Plus ou moins
+        cmp [random_uint32], r11d
+        ja plus
+        jl moins
+        je win
+        plus:
+            ; write(1, More, len)
+            mov     rax, SYS_WRITE
+            mov     rdi, 1
+            mov     rsi, More
+            mov     rdx, len_More
+            syscall
+
+            jmp game_loop
+
+        moins:
+            ; write(1, Less, len)
+            mov     rax, SYS_WRITE
+            mov     rdi, 1
+            mov     rsi, Less
+            mov     rdx, len_Less
+            syscall
+
+            jmp game_loop
+
+        win:
         ; CONVERSION ENTIER => ASCII
         ; On divise par 10 jusqua val = 0.
         ;   ex: 132 / 10 => q=13, r=2 => buffer '2'
@@ -168,7 +181,7 @@ _start:
         ;       1 / 10   => q=0,  r=1 => buffer '1'
         ; Je pars du principe que le int a convertir est dans r11d (donc 32bits)
         ; Résultat dans ascii_buffer.
-        mov r14, ascii_buffer_size ; index du buffer
+        mov r14, uint32_size ; index du buffer
         dec r14
         int_to_ascii:
             mov edx, 0
@@ -188,14 +201,14 @@ _start:
         ;Tant que r11d > 0 on loop
         cmp r11d, 0
         ja int_to_ascii
-
-        ; write(1, InvalidNumber, len)
+        
+        ; write(1, Win, len)
         mov     rax, SYS_WRITE
         mov     rdi, 1
-        mov     rsi, ascii_buffer
-        mov     rdx, ascii_buffer_size
+        mov     rsi, Win
+        mov     rdx, len_Win
         syscall
-
+    
         ; exit(0)
         mov rax, SYS_EXIT
         xor rdi, rdi
