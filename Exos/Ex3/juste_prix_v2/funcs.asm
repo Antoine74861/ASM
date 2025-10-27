@@ -63,10 +63,25 @@ section .text
 
         ret
 
-
-    ; read_line(rdi=buf, rsi=max_len) -> rax=len
+    ; read_line(rsi=buf, rdx=max_len) -> rax=len
     read_line:
-    
+        push rsi 
+
+        mov     rax, SYS_READ 				   
+        xor     rdi, rdi 
+        syscall
+
+        cmp rax, 0 
+        jle end
+
+        pop rsi
+        cmp byte [rsi + rax - 1], 0x0A
+        jnz  end
+        dec rax
+                
+        end:
+        ret 
+
     ; ascii_to_int(rsi=str, rdx=len) -> rax=value, CF=erreur
     ascii_to_int:
 
@@ -75,6 +90,23 @@ section .text
 
     ; is_numeric(rsi=str, rdx=len) -> rax=1/0
     is_numeric:
+        xor rax, rax
+        xor rcx, rcx 
+        for_byte_in_str:            
+            ; si char < '0' ou > '9' -> entrée invalide
+            cmp byte [rsi + rcx], 0x30  
+            jb end
+            cmp byte [rsi + rcx], 0x39
+            ja end
+            inc rcx
+
+        cmp rcx, rdx
+        jne for_byte_in_str
+        
+        mov rax, 1
+
+        end:
+        ret
 
     ; is_in_range(edi=value, esi=min, edx=max) -> rax=1/0
     is_in_range:
