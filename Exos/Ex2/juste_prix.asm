@@ -6,32 +6,32 @@
 DEFAULT REL	          
 
 SECTION .rodata
-AskGuessANumber:        db "Devinez le nombre (1..100): "
-len_AskGuessANumber:    equ $ - AskGuessANumber
-PrintError:             db "Catastrophe", 0x0A
-len_PrintError:         equ $ - PrintError
-InvalidNumber:          db "Entree invalide (1..100)", 0x0A
-len_InvalidNumber:      equ $ - InvalidNumber
-More:                   db "Plus", 0x0A
-len_More:               equ $ - More
-Less:                   db "Moins", 0x0A
-len_Less:               equ $ - Less
-Win:                    db "Bravo!! Nombre d'essais: "
-len_Win:                equ $ - Win
-TooMuchTries:           db "Trop nul dsl", 0x0A
-len_TooMuchTries:       equ $ - TooMuchTries                
-lf:                     db 10
+    AskGuessANumber:        db "Devinez le nombre (1..100): "
+    len_AskGuessANumber:    equ $ - AskGuessANumber
+    PrintError:             db "Catastrophe", 0x0A
+    len_PrintError:         equ $ - PrintError
+    InvalidNumber:          db "Entree invalide (1..100)", 0x0A
+    len_InvalidNumber:      equ $ - InvalidNumber
+    More:                   db "Plus", 0x0A
+    len_More:               equ $ - More
+    Less:                   db "Moins", 0x0A
+    len_Less:               equ $ - Less
+    Win:                    db "Bravo!! Nombre d'essais: "
+    len_Win:                equ $ - Win
+    TooMuchTries:           db "Trop nul dsl", 0x0A
+    len_TooMuchTries:       equ $ - TooMuchTries                
+    lf:                     db 10
 
-max_tries               equ 100
-user_input_buf_size     equ 256
-uint32_size             equ 4
-nb_essais_size          equ 1
+    max_tries               equ 100
+    user_input_buf_size     equ 256
+    uint32_size             equ 4
+    nb_essais_size          equ 1
 
 SECTION .bss
-user_input:    resb user_input_buf_size
-random_uint32: resb uint32_size
-ascii_buffer:  resb uint32_size
-nb_essais:     resb nb_essais_size
+    user_input:    resb user_input_buf_size
+    random_uint32: resb uint32_size
+    ascii_buffer:  resb uint32_size
+    nb_essais:     resb nb_essais_size
 
 SECTION .text
 global _start

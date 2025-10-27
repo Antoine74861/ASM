@@ -10,16 +10,16 @@
 ;   nasm -f elf64 -o hello_name_v1.o hello_name_v1.asm && ld -o hello_name_v1 hello_name_v1.o && ./hello_name_v1
 
 SECTION .rodata
-AskNameInput:        db "Entrez votre prénom: "
-len_AskNameInput:    equ $ - AskNameInput
-AnswerName:        db "Bonjour "
-len_AnswerName:    equ $ - AnswerName
-AnswerExclamationMark:        db "!", 10
-len_AnswerExclamationMark:    equ $ - AnswerExclamationMark
-user_input_buf       equ 256
+    AskNameInput:                 db "Entrez votre prénom: "
+    len_AskNameInput:             equ $ - AskNameInput
+    AnswerName:                   db "Bonjour "
+    len_AnswerName:               equ $ - AnswerName
+    AnswerExclamationMark:        db "!", 10
+    len_AnswerExclamationMark:    equ $ - AnswerExclamationMark
+    user_input_buf                equ 256
 
 SECTION .bss
-user_input: resb 256
+    user_input: resb 256
 
 SECTION .text
 global _start
