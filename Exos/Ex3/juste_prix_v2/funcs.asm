@@ -138,34 +138,45 @@ section .text
 
     ; random_range(edi=min, esi=max) -> eax=random
     random_range:
+        push r11        ; sauvegarde de r11 (convention)
+        push r12        ; sauvegarde de r12 (convention)
+        push r13        ; sauvegarde de r13 (convention)
+
+        sub esi, edi    ; max = max - min
+        mov r12d, esi   ; max        
+        mov r13d, edi   ; min
+
         ; ======  T = (2^32 / max) * max ======
         ; eax = (2^32 / max)
-        mov edx, 1
-        mov eax, 0
-        mov ecx, max
-        div ecx
+        mov rdx, 0x1
+        mov rax, 0x0  ; 2^32
+        mov rcx, esi
+        div rcx
 
-        ; eax = edx * max
-        mov edx, eax
-        mov eax, max
+        ; eax = rdx * max
+        mov rdx, rax
+        mov rax, esi
         mul edx
         ; =====================================
-
-        call get_random_uint32 ; -> eax
-
-        cmp dword [eax], 0xFFFFFFA0   ; T = (2^32 / max) * max
-        jb get_random_uint32
         
-        skip_retry_random:
+        mov r11d, edx   ; T
+        while_not_in_range:
+            call get_random_uint32 ; -> eax
+
+        cmp eax, r11d
+        ja while_not_in_range
 
         mov edx, 0
-        mov eax, [random_uint32]
-        mov ecx, 0x64
+        mov ecx, r12d
         div ecx
-        
-        inc edx
-        mov dword [random_uint32], edx 
 
+        mov eax, edx 
+        add eax, r13d  ; ajoute min
+
+        pop r13
+        pop r12
+        pop r11
+        ret
         
 
     ; exit(edi=code)
