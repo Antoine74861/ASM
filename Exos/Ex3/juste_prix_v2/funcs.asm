@@ -85,10 +85,9 @@ section .text
     ; ascii_to_int(rsi=str, rdx=len) -> rax=value
     ascii_to_int:
         mov r8, rdx    ; len dans r8
-
-        xor rcx, rcx ; index de la loop
-        xor edx, edx ; resultat total
-        for_byte_in_str:  ; on converti l'ASCII user_input en int    
+        xor rcx, rcx
+        xor edx, edx
+        for_byte_in_str:    
             cmp rcx, r8
             je end
 
@@ -111,8 +110,33 @@ section .text
         ret
 
 
-    ; int_to_ascii(edi=value, rsi=buf) -> rax=len
+    ; int_to_ascii(rsi=buf, edi=value) -> rax=len
     int_to_ascii:
+        movzx r11d, byte [nb_essais]  
+        mov r14, uint32_size ; index du buffer
+        dec r14
+        xor r13, r13
+        int_to_ascii:
+            mov edx, 0
+            mov eax, r11d
+            mov ecx, 10
+            div ecx
+
+            mov r11d, eax  ; quotient
+            mov r12b, dl   ; reste
+
+            add r12b, 0x30
+            lea r15, [ascii_buffer + r14] 
+            mov [r15], r12b
+
+            dec r14
+            inc r13
+        
+        ;Tant que r11d > 0 on loop
+        cmp r11d, 0
+        ja int_to_ascii
+
+
 
     ; is_numeric(rsi=str, rdx=len) -> rax=1/0
     is_numeric:
