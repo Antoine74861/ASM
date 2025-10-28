@@ -92,30 +92,81 @@ section .text
     is_numeric:
         xor rax, rax
         xor rcx, rcx 
-        for_byte_in_str:            
+        for_byte_in_str:  
+            cmp rcx, rdx
+            je if_all_numeric
+
             ; si char < '0' ou > '9' -> entrée invalide
             cmp byte [rsi + rcx], 0x30  
             jb end
             cmp byte [rsi + rcx], 0x39
             ja end
             inc rcx
-
-        cmp rcx, rdx
-        jne for_byte_in_str
-        
-        mov rax, 1
-
+        if_all_numeric:
+            mov rax, 1
         end:
         ret
 
     ; is_in_range(edi=value, esi=min, edx=max) -> rax=1/0
     is_in_range:
+        xor rax, rax
 
+        cmp edi, esi  
+        jb not_in_range
+        cmp edi, edx
+        ja not_in_range
+
+        mov rax, 1 ; si (esi <= edi => edx)
+        
+        not_in_range:
+        ret
+        
     ; get_random_uint32() -> eax=random
     get_random_uint32:
+        sub rsp, 8
+
+        mov rax, SYS_GETRANDOM      
+        lea rdi, [rsp]
+        mov rsi, 4
+        xor rdx, rdx    
+        syscall
+
+        mov eax, [rsp]
+        add rsp, 8
+        
+        ret
 
     ; random_range(edi=min, esi=max) -> eax=random
     random_range:
+        ; ======  T = (2^32 / max) * max ======
+        ; eax = (2^32 / max)
+        mov edx, 1
+        mov eax, 0
+        mov ecx, max
+        div ecx
+
+        ; eax = edx * max
+        mov edx, eax
+        mov eax, max
+        mul edx
+        ; =====================================
+
+        call get_random_uint32 ; -> eax
+
+        cmp dword [eax], 0xFFFFFFA0   ; T = (2^32 / max) * max
+        jb get_random_uint32
+        
+        skip_retry_random:
+
+        mov edx, 0
+        mov eax, [random_uint32]
+        mov ecx, 0x64
+        div ecx
+        
+        inc edx
+        mov dword [random_uint32], edx 
+
+        
 
     ; exit(edi=code)
     exit:
