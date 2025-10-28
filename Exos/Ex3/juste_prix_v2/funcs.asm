@@ -82,8 +82,34 @@ section .text
         end:
         ret 
 
-    ; ascii_to_int(rsi=str, rdx=len) -> rax=value, CF=erreur
+    ; ascii_to_int(rsi=str, rdx=len) -> rax=value
     ascii_to_int:
+        mov r8, rdx    ; len dans r8
+
+        xor rcx, rcx ; index de la loop
+        xor edx, edx ; resultat total
+        for_byte_in_str:  ; on converti l'ASCII user_input en int    
+            cmp rcx, r8
+            je end
+
+            movzx r9d, byte [rsi + rcx]
+            sub r9d, 0x30
+
+            mov eax, edx    ; val
+            mov edx, 10     ; 10
+            mul edx         ; mul = val * 10
+
+            add eax, r9d   ; (mul + digit)
+            mov rdx, eax    ; val = val + (mul + digit)
+
+            inc rcx
+
+            jmp for_byte_in_str
+        end:
+
+        mov rax, rdx
+        ret
+
 
     ; int_to_ascii(edi=value, rsi=buf) -> rax=len
     int_to_ascii:
@@ -102,6 +128,8 @@ section .text
             cmp byte [rsi + rcx], 0x39
             ja end
             inc rcx
+
+            jmp for_byte_in_str
         if_all_numeric:
             mov rax, 1
         end:
@@ -148,15 +176,15 @@ section .text
 
         ; ======  T = (2^32 / max) * max ======
         ; eax = (2^32 / max)
-        mov rdx, 0x1
-        mov rax, 0x0  ; 2^32
+        mov rdx, 0x1  ; 
+        xor rax, rax  ; 2^32
         mov rcx, esi
         div rcx
 
         ; eax = rdx * max
         mov rdx, rax
         mov rax, esi
-        mul edx
+        mul rdx
         ; =====================================
         
         mov r11d, edx   ; T
@@ -181,12 +209,12 @@ section .text
 
     ; exit(edi=code)
     exit:
-
-    ; exit_success()
-    exit_success:
-
-    ; exit_error()
-    exit_error:
+        mov al, SYS_EXIT
+        syscall
 
     ; exit_error_msg(rsi=msg, rdx=len)
     exit_error_msg:
+        call println 
+        mov al, SYS_EXIT
+        mov edi, 1
+        syscall
