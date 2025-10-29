@@ -103,39 +103,37 @@ section .text
 
             inc rcx
 
-            jmp for_byte_in_str
+        jmp for_byte_in_str
         end:
 
         mov rax, rdx
         ret
 
 
-    ; int_to_ascii(rsi=buf, edi=value) -> rax=len
+    ; int_to_ascii(edi=value, rsi=buf) -> rax=len
     int_to_ascii:
-        movzx r11d, byte [nb_essais]  
-        mov r14, uint32_size ; index du buffer
-        dec r14
-        xor r13, r13
-        int_to_ascii:
+        loop_int_to_ascii:
+            cmp edi, 0
+            je end
+
             mov edx, 0
-            mov eax, r11d
+            mov eax, edi
             mov ecx, 10
             div ecx
 
-            mov r11d, eax  ; quotient
+            mov edi, eax   ; quotient
             mov r12b, dl   ; reste
 
             add r12b, 0x30
-            lea r15, [ascii_buffer + r14] 
+            lea r15, [rsi + r14] 
             mov [r15], r12b
 
             dec r14
             inc r13
-        
-        ;Tant que r11d > 0 on loop
-        cmp r11d, 0
-        ja int_to_ascii
 
+        jmp loop_int_to_ascii
+        end:
+        ret 
 
 
     ; is_numeric(rsi=str, rdx=len) -> rax=1/0
