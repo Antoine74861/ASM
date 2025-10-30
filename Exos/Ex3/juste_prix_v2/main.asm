@@ -1,6 +1,17 @@
 DEFAULT REL	          
 global _start
 
+extern AskGuessANumber, len_AskGuessANumber
+extern PrintError, len_PrintError
+extern InvalidNumber, len_InvalidNumber
+extern More, len_More
+extern Less, len_Less
+extern Win, len_Win
+extern TooMuchTries, len_TooMuchTries
+extern lf
+
+extern user_input, random_uint32, ascii_buffer, nb_essais
+
 ; === I/O ===
 ; print(rsi=addr, rdx=len)
 ; println(rsi=addr, rdx=len)
@@ -32,6 +43,31 @@ extern exit, exit_success, exit_error, exit_error_msg
 
 SECTION .text
     _start:
-        mov rsi, [buff]
-        mov rdx, len
-        call print
+        call get_random_uint32
+
+        mov edi, eax
+        mov rsi, ascii_buffer
+        call int_to_ascii
+        
+        lea rsi, [rel ascii_buffer]
+        mov rdx, 4
+        call println
+
+        mov edi, 0x1
+        mov esi, 0x64
+        call random_range
+
+        mov edi, eax
+        mov rsi, ascii_buffer
+        call int_to_ascii
+        
+        lea rsi, [rel ascii_buffer]
+        mov rdx, rax
+        call println
+        
+        lea rsi, [rel AskGuessANumber]
+        mov rdx, len_AskGuessANumber
+        call println
+
+
+        call exit

@@ -4,19 +4,12 @@
 %define SYS_GETRANDOM 318
 
 section .text
-    global print
-    global println
-    global read_line
-    global ascii_to_int
-    global int_to_ascii
-    global is_numeric
-    global is_in_range
-    global get_random_uint32
-    global random_range
-    global exit
-    global exit_success
-    global exit_error
-    global exit_error_msg
+    global print, println, read_line
+    global ascii_to_int, int_to_ascii, is_numeric, is_in_range
+    global get_random_uint32, random_range
+
+    ; --- Gestion de la sortie du programme ---
+    global exit, exit_success, exit_error, exit_error_msg
 
     ; print(rsi=addr, rdx=len)
     print:
@@ -92,8 +85,9 @@ section .text
         ret
 
 
-    ; int_to_ascii(edi=value, rsi=buf) -> rax=len
+    ; int_to_ascii(edi=value, rsi=&buf) -> rax=len
     int_to_ascii:
+        xor r9, r9
         loop_int_to_ascii:
             cmp edi, 0
             je .end
@@ -107,13 +101,12 @@ section .text
             mov r8b, dl    ; reste
             add r8b, 0x30
 
-            mov byte [rsi + r14], r8b
+            mov byte [rsi + r9], r8b
 
-            dec r14
-            inc r13
-
+            inc r9
             jmp loop_int_to_ascii
         .end:
+        mov rax, r9
         ret 
 
 
