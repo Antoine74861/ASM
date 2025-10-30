@@ -187,7 +187,7 @@ section .text
         while_not_in_range:
             call get_random_uint32 ; -> eax
 
-        cmp eax, r11d
+        cmp r11d, eax
         ja while_not_in_range
 
         mov edx, 0
