@@ -18,7 +18,7 @@ section .text
         syscall
 
         ret
-
+    
     ; println(rsi=addr, rdx=len)
     println:
         mov     rax, SYS_WRITE      
@@ -55,6 +55,7 @@ section .text
         dec rax
                 
         .end:
+            
         ret 
 
     ; ascii_to_int(rsi=str, rdx=len) -> rax=value
