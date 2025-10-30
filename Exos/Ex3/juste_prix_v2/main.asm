@@ -54,7 +54,7 @@ SECTION .text
         call println
 
         mov edi, 0x1
-        mov esi, 0x64
+        mov esi, 0x5
         call random_range
 
         mov edi, eax

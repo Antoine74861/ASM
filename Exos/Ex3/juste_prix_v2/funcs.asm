@@ -161,18 +161,20 @@ section .text
         ret
 
     ; random_range(edi=min, esi=max) -> eax=random
+    ; range: [min, max]
     random_range:
         push r11        ; sauvegarde de r11 (convention)
         push r12        ; sauvegarde de r12 (convention)
         push r13        ; sauvegarde de r13 (convention)
 
         sub esi, edi    ; max = max - min
+        inc esi         ; max = max + 1 
         mov r12d, esi   ; max        
         mov r13d, edi   ; min
 
         ; ======  T = (2^32 / max) * max ======
         ; eax = (2^32 / max)
-        mov rdx, 0x1  ; 
+        mov edx, 0x1  ; 
         xor rax, rax  ; 2^32
         mov ecx, esi
         div ecx
@@ -183,12 +185,12 @@ section .text
         mul rdx
         ; =====================================
         
-        mov r11d, edx   ; T
+        mov r11d, eax   ; T
         while_not_in_range:
             call get_random_uint32 ; -> eax
 
         cmp r11d, eax
-        ja while_not_in_range
+        jae while_not_in_range
 
         mov edx, 0
         mov ecx, r12d
