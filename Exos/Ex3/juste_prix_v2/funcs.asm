@@ -3,29 +3,6 @@
 %define SYS_EXIT 60
 %define SYS_GETRANDOM 318
 
-; === I/O ===
-; print(rsi=addr, rdx=len)
-; println(rsi=addr, rdx=len)
-; read_line(rdi=buf, rsi=max_len) -> rax=len
-
-; === Conversions ===
-; ascii_to_int(rsi=str, rdx=len) -> rax=value, CF=erreur
-; int_to_ascii(edi=value, rsi=buf) -> rax=len
-
-; === Validation ===
-; is_numeric(rsi=str, rdx=len) -> rax=1/0
-; is_in_range(edi=value, esi=min, edx=max) -> rax=1/0
-
-; === Random ===
-; get_random_uint32() -> eax=random
-; random_range(edi=min, esi=max) -> eax=random
-
-; === Exit ===
-; exit(edi=code)
-; exit_success()
-; exit_error()
-; exit_error_msg(rsi=msg, rdx=len)
-
 section .text
     global print
     global println
@@ -54,12 +31,17 @@ section .text
         mov     rax, SYS_WRITE      
         mov     rdi, 1
         syscall
-
-        mov     rax, SYS_WRITE
-        mov     rdi, 1
-        lea     rsi, [lf]
-        mov     rdx, 1
+        
+        sub rsp, 1
+        mov byte [rsp], 0x0A
+        
+        mov rax, 1
+        mov rdi, 1
+        mov rsi, rsp
+        mov rdx, 1
         syscall
+
+        add rsp, 1
 
         ret
 
@@ -72,14 +54,14 @@ section .text
         syscall
 
         cmp rax, 0 
-        jle end
+        jle .end
 
         pop rsi
         cmp byte [rsi + rax - 1], 0x0A
-        jnz  end
+        jnz  .end
         dec rax
                 
-        end:
+        .end:
         ret 
 
     ; ascii_to_int(rsi=str, rdx=len) -> rax=value
@@ -87,9 +69,9 @@ section .text
         mov r8, rdx    ; len dans r8
         xor rcx, rcx
         xor edx, edx
-        for_byte_in_str:    
+        .for_byte_in_str:    
             cmp rcx, r8
-            je end
+            je .end
 
             movzx r9d, byte [rsi + rcx]
             sub r9d, 0x30
@@ -99,12 +81,12 @@ section .text
             mul edx         ; mul = val * 10
 
             add eax, r9d   ; (mul + digit)
-            mov rdx, eax    ; val = val + (mul + digit)
+            mov edx, eax   ; val = val + (mul + digit)
 
             inc rcx
 
-        jmp for_byte_in_str
-        end:
+            jmp .for_byte_in_str
+        .end:
 
         mov rax, rdx
         ret
@@ -114,7 +96,7 @@ section .text
     int_to_ascii:
         loop_int_to_ascii:
             cmp edi, 0
-            je end
+            je .end
 
             mov edx, 0
             mov eax, edi
@@ -122,17 +104,16 @@ section .text
             div ecx
 
             mov edi, eax   ; quotient
-            mov r12b, dl   ; reste
+            mov r8b, dl    ; reste
+            add r8b, 0x30
 
-            add r12b, 0x30
-            lea r15, [rsi + r14] 
-            mov [r15], r12b
+            mov byte [rsi + r14], r8b
 
             dec r14
             inc r13
 
-        jmp loop_int_to_ascii
-        end:
+            jmp loop_int_to_ascii
+        .end:
         ret 
 
 
@@ -140,21 +121,21 @@ section .text
     is_numeric:
         xor rax, rax
         xor rcx, rcx 
-        for_byte_in_str:  
+        .for_byte_in_str:  
             cmp rcx, rdx
-            je if_all_numeric
+            je .if_all_numeric
 
             ; si char < '0' ou > '9' -> entrée invalide
             cmp byte [rsi + rcx], 0x30  
-            jb end
+            jb .end
             cmp byte [rsi + rcx], 0x39
-            ja end
+            ja .end
             inc rcx
 
-            jmp for_byte_in_str
-        if_all_numeric:
+            jmp .for_byte_in_str
+        .if_all_numeric:
             mov rax, 1
-        end:
+        .end:
         ret
 
     ; is_in_range(edi=value, esi=min, edx=max) -> rax=1/0
@@ -200,12 +181,12 @@ section .text
         ; eax = (2^32 / max)
         mov rdx, 0x1  ; 
         xor rax, rax  ; 2^32
-        mov rcx, esi
-        div rcx
+        mov ecx, esi
+        div ecx
 
         ; eax = rdx * max
         mov rdx, rax
-        mov rax, esi
+        mov eax, esi
         mul rdx
         ; =====================================
         
