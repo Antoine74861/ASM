@@ -81,19 +81,18 @@ section .text
 
             jmp .for_byte_in_str
         .end:
-
         mov rax, rdx
         ret
-
 
     ; int_to_ascii(edi=value, rsi=&buf) -> rax=len
     int_to_ascii:
         xor r9, r9
-        loop_int_to_ascii:
+        xor r10, r10
+        .loop_int_to_ascii:
             cmp edi, 0
-            je .end
+            je .reverse_string
 
-            mov edx, 0
+            xor edx, edx
             mov eax, edi
             mov ecx, 10
             div ecx
@@ -102,10 +101,20 @@ section .text
             mov r8b, dl    ; reste
             add r8b, 0x30
 
-            mov byte [rsi + r9], r8b
+            push r8 ; pour le flip
 
             inc r9
-            jmp loop_int_to_ascii
+            jmp .loop_int_to_ascii
+
+        .reverse_string:
+            cmp r10, r9
+            je .end 
+
+            pop r8
+            mov byte [rsi + r10], r8b
+
+            inc r10
+            jmp .reverse_string
         .end:
         mov rax, r9
         ret 
@@ -135,7 +144,7 @@ section .text
     ; is_in_range(edi=value, esi=min, edx=max) -> rax=1/0
     is_in_range:
         xor rax, rax
-
+    
         cmp edi, esi  
         jb not_in_range
         cmp edi, edx
@@ -193,7 +202,7 @@ section .text
         cmp r11d, eax
         jae while_not_in_range
 
-        mov edx, 0
+        xor edx, edx
         mov ecx, r12d
         div ecx
 
