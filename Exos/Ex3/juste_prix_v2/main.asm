@@ -1,54 +1,7 @@
 DEFAULT REL	          
 
-; === I/O ===
-; print(rsi=addr, rdx=len)
-; println(rsi=addr, rdx=len)
-; read_line(rsi=buf, rdx=max_len) -> rax=len
-extern print, println, read_line
-
-; === Conversions ===
-; ascii_to_int(rsi=str, rdx=len) -> rax=value, CF=erreur
-; int_to_ascii(edi=value, rsi=buf) -> rax=len
-extern ascii_to_int, int_to_ascii
-
-; === Validation ===
-; is_numeric(rsi=str, rdx=len) -> rax=1/0
-; is_in_range(edi=value, esi=min, edx=max) -> rax=1/0
-extern is_numeric, is_in_range
-
-; === Random ===
-; get_random_uint32() -> eax=random
-; random_range(edi=min, esi=max) -> eax=random
-extern get_random_uint32, random_range
-
-; === Exit ===
-; exit(edi=code)
-; exit_success()
-; exit_error()
-; exit_error_msg(rsi=msg, rdx=len)
-extern exit, exit_success, exit_error, exit_error_msg
-
-SECTION .rodata
-    AskGuessANumber:        db "Devinez le nombre (1..100): "
-    len_AskGuessANumber:    equ $ - AskGuessANumber
-    InvalidNumber:          db "Entree invalide (1..100)"
-    len_InvalidNumber:      equ $ - InvalidNumber
-    More:                   db "Plus"
-    len_More:               equ $ - More
-    Less:                   db "Moins"
-    len_Less:               equ $ - Less
-    Win:                    db "Bravo!! Nombre d'essais: "
-    len_Win:                equ $ - Win
-    TooMuchTries:           db "Trop nul dsl"
-    len_TooMuchTries:       equ $ - TooMuchTries
-
-    max_tries               equ 100
-    user_input_buf_size     equ 256
-    uint32_size             equ 4
-    nb_essais_size          equ 1
-
-    MIN_VALUE equ 1
-    MAX_VALUE equ 100
+%include "externs.asm"
+%include "constants.asm"
 
 SECTION .bss    
     user_input:    resb user_input_buf_size

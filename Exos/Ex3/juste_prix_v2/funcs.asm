@@ -48,7 +48,7 @@ section .text
 
         cmp rax, 0 
         jle .end
-
+        
         pop rsi
         cmp byte [rsi + rax - 1], 0x0A
         jnz  .end
