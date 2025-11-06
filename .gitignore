@@ -40,3 +40,6 @@ core.*
 .DS_Store
 Thumbs.db
 clear.sh
+solve.py
+.venv/
+activate.sh
