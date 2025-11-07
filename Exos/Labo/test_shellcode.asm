@@ -1,17 +1,18 @@
 section .text
     global _start
 _start:
-    sub     rsp, 1
-    mov     byte [rsp], 0x41
+    sub     rsp, 8
+    mov     rax, 0x68732f6e69622f
+    mov     [rsp], rax
 
-    mov     eax, 1          ; sys_write
-    mov     edi, 1          ; stdout
-    mov     rsi, rsp        ; buf = &newline
-    mov     edx, 1          ; count
+    mov     rax, 0x3b         
+    mov     rdi, rsp         
+    xor     rsi, rsi       
+    xor     rdx, rdx        
     syscall
 
-    add     rsp, 1
+    add     rsp, 8
 
-    mov     eax, 60         ; sys_exit
+    mov     eax, 60       
     xor     edi, edi
     syscall
